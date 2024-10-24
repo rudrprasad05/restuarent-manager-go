@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"restuarent-manager-go/controllers"
+	"restuarent-manager-go/middleware"
+	"restuarent-manager-go/models"
+	"restuarent-manager-go/routes"
 	"strconv"
 	"sync"
 )
@@ -110,34 +113,34 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
             w.WriteHeader(http.StatusNoContent)      // Return 204 No Content
             return
         }
+
     }
     http.Error(w, "Item not found", http.StatusNotFound)
 }
 
 func main() {
-    // Define the routes for the API
-    http.HandleFunc("/items", func(w http.ResponseWriter, r *http.Request) {
-        if r.Method == http.MethodGet {
-            getItems(w, r)
-        } else if r.Method == http.MethodPost {
-            createItem(w, r)
-        } else {
-            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        }
-    })
 
-    http.HandleFunc("/items/{id}", func(w http.ResponseWriter, r *http.Request) {
-        if r.Method == http.MethodGet {
-            getItem(w, r)
-        } else if r.Method == http.MethodPut {
-            updateItem(w, r)
-        } else if r.Method == http.MethodDelete {
-            deleteItem(w, r)
-        } else {
-            http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        }
-    })
+    
+    insert()
+    mux := http.NewServeMux()
+	mux.HandleFunc("/orders", routes.GetOrdersHandler)
 
-    fmt.Println("Server is running on port 8080...")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	// Apply the CORS middleware
+	handlerWithCORS := middleware.CORS(mux)
+
+	// Start the server
+	log.Println("Starting server on :8080")
+	if err := http.ListenAndServe(":8080", handlerWithCORS); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
+}
+
+func insert(){
+    newOrder := models.Order{
+		Customer:    "John Doe",
+		Amount:      99.99,
+		OrderStatus: "Pending",
+	}
+	err := controllers.InsertOrder(newOrder)
+    log.Println(err)
 }
